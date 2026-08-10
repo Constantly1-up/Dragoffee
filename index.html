@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Вскрытая папка · почему в установленной игре всё «раскидано»</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Spline+Sans+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#E6EAE7; --paper2:#DBE1DD; --card:#F5F7F5; --card2:#EEF1EE;
+    --ink:#14181A; --muted:#56635D; --faint:#94A09A;
+    --line:rgba(20,24,26,.12); --line2:rgba(20,24,26,.22);
+    --verm:#D2402A; --teal:#17605F; --ochre:#A9761C; --inkblue:#274A78; --moss:#4E6B33;
+    --disp:'Clash Display',sans-serif; --body:'Hanken Grotesk',sans-serif; --mono:'Spline Sans Mono',monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.7;
+    overflow-x:hidden;-webkit-font-smoothing:antialiased;
+    background-image:
+      linear-gradient(rgba(20,24,26,.035) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(20,24,26,.035) 1px,transparent 1px);
+    background-size:26px 26px}
+  #scan{position:fixed;inset:0;z-index:0;pointer-events:none}
+  #net{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5}
+  .wrap{position:relative;z-index:2;max-width:1200px;margin:0 auto;padding:0 34px}
+
+  h1,h2,h3{font-family:var(--disp);font-weight:600;line-height:.98;letter-spacing:-.01em}
+  .mono{font-family:var(--mono)}
+  .eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.32em;text-transform:uppercase;color:var(--teal)}
+  .lead{font-size:1.16rem;color:var(--muted);max-width:46ch}
+  .stamp{font-family:var(--mono);font-size:.64rem;letter-spacing:.26em;text-transform:uppercase;color:var(--verm);
+    border:1.5px solid var(--verm);padding:6px 12px;display:inline-block;transform:rotate(-2deg)}
+  .pill{font-family:var(--mono);font-size:.66rem;letter-spacing:.06em;padding:3px 9px;border-radius:4px;
+    border:1px solid var(--line2);color:var(--muted);white-space:nowrap}
+  .ghost{font-family:var(--disp);font-weight:700;color:var(--line2);font-size:clamp(3rem,9vw,7rem);line-height:.78}
+
+  .rv{opacity:0;transform:translateY(26px);transition:opacity .8s cubic-bezier(.2,.7,.2,1),transform .8s cubic-bezier(.2,.7,.2,1)}
+  .rv.in{opacity:1;transform:none}
+
+  /* layer tag colors */
+  .L{font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:4px;font-weight:700}
+  .L-runtime{background:rgba(210,64,42,.12);color:var(--verm);border:1px solid rgba(210,64,42,.35)}
+  .L-deps{background:rgba(23,96,95,.12);color:var(--teal);border:1px solid rgba(23,96,95,.35)}
+  .L-assets{background:rgba(169,118,28,.13);color:var(--ochre);border:1px solid rgba(169,118,28,.4)}
+  .L-data{background:rgba(39,74,120,.12);color:var(--inkblue);border:1px solid rgba(39,74,120,.35)}
+  .L-userdata{background:rgba(78,107,51,.13);color:var(--moss);border:1px solid rgba(78,107,51,.4)}
+
+  /* ---------- OPEN : asymmetric, listing-as-hero ---------- */
+  .open{display:grid;grid-template-columns:.92fr 1.08fr;gap:48px;align-items:start;padding:78px 0 50px}
+  .open .left{position:sticky;top:30px}
+  .open h1{font-size:clamp(2.5rem,5.6vw,4.8rem);margin:18px 0 22px}
+  .open h1 .v{color:var(--verm)}
+  .open h1 .strike{position:relative;color:var(--faint)}
+  .open h1 .strike::after{content:"";position:absolute;left:-2%;right:-2%;top:54%;height:5px;background:var(--verm);transform:rotate(-1.4deg)}
+  /* listing card = printed sheet */
+  .sheet{background:var(--card);border:1px solid var(--line2);border-radius:6px;
+    box-shadow:0 1px 0 #fff inset,0 26px 60px -38px rgba(20,24,26,.5);overflow:hidden;position:relative}
+  .sheet::before{content:"";position:absolute;left:42px;top:0;bottom:0;width:1px;background:rgba(210,64,42,.25)}
+  .sheet .bar{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--line);
+    background:var(--card2);font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+  .sheet .bar .dot{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--line2)}
+  .sheet .body{padding:14px 16px 18px 56px;font-family:var(--mono);font-size:.8rem;line-height:1.85;min-height:330px;color:var(--ink)}
+  .sheet .body .ln{white-space:pre;opacity:0;animation:tin .01s forwards}
+  .sheet .body .d{color:var(--teal);font-weight:700}
+  .sheet .body .x{color:var(--verm)}
+  .sheet .body .c{color:var(--faint)}
+  .caret{display:inline-block;width:8px;height:1em;background:var(--verm);vertical-align:-2px;animation:bl 1s steps(1) infinite}
+  @keyframes bl{50%{opacity:0}} @keyframes tin{to{opacity:1}}
+
+  /* ---------- section frame ---------- */
+  section{padding:88px 0;border-top:1px solid var(--line)}
+  .sec-head{display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:end;margin-bottom:40px}
+  .sec-head h2{font-size:clamp(1.8rem,3.8vw,3rem)}
+  .sec-head p{color:var(--muted);max-width:54ch;margin-top:10px}
+
+  /* ---------- X-RAY explorer ---------- */
+  .legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+  .legend .lg{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:.7rem;color:var(--muted);
+    padding:6px 11px;border:1px solid var(--line);border-radius:30px;background:var(--card);transition:.3s}
+  .legend .lg .sw{width:10px;height:10px;border-radius:3px}
+  .legend .lg.lit{border-color:var(--ink);color:var(--ink);transform:translateY(-2px);box-shadow:0 8px 20px -14px rgba(20,24,26,.6)}
+  .explorer{display:grid;grid-template-columns:1.05fr .95fr;gap:24px;align-items:start}
+  .tree{background:var(--card);border:1px solid var(--line2);border-radius:8px;padding:12px 8px;font-family:var(--mono);font-size:.84rem;
+    box-shadow:0 1px 0 #fff inset}
+  .tree ul{list-style:none;padding-left:0}
+  .tree ul ul{padding-left:18px;border-left:1px dashed var(--line);margin-left:8px;max-height:0;overflow:hidden;transition:max-height .45s ease}
+  .tree li.open>ul{max-height:2000px}
+  .tree .node{display:flex;align-items:center;gap:9px;padding:5px 10px;border-radius:6px;cursor:pointer;transition:background .15s,color .15s;user-select:none}
+  .tree .node:hover{background:var(--card2)}
+  .tree .node.sel{background:rgba(210,64,42,.10);color:var(--verm)}
+  .tree .tw{width:13px;color:var(--faint);transition:transform .25s;display:inline-block;text-align:center}
+  .tree li.open>.node .tw{transform:rotate(90deg);color:var(--verm)}
+  .tree .ic{width:15px;text-align:center}
+  .tree .dir>.node .nm{font-weight:700;color:var(--ink)}
+  .tree .dir>.node.sel .nm{color:var(--verm)}
+  .tree .file .ic{color:var(--teal)}
+  .tree .node .tg{margin-left:auto}
+  .xray{position:sticky;top:24px;background:var(--card);border:1px solid var(--line2);border-radius:8px;padding:24px 24px 26px;min-height:300px;
+    box-shadow:0 1px 0 #fff inset,0 24px 50px -40px rgba(20,24,26,.5)}
+  .xray .k{font-family:var(--mono);font-size:.66rem;letter-spacing:.2em;text-transform:uppercase;color:var(--faint)}
+  .xray h3{font-size:1.35rem;margin:8px 0 6px;font-family:var(--mono);font-weight:700;color:var(--ink);word-break:break-all}
+  .xray .role{font-family:var(--mono);font-size:.74rem;color:var(--teal);margin-bottom:14px}
+  .xray p{color:var(--muted);font-size:.97rem;margin-bottom:12px}
+  .xray p b{color:var(--ink)}
+  .xray .alt{border-left:3px solid var(--ochre);padding:8px 0 8px 14px;font-size:.88rem;color:var(--muted);margin-top:6px}
+  .xray .alt b{color:var(--ochre)}
+
+  /* ---------- two orders ---------- */
+  .orders{display:grid;grid-template-columns:1fr 84px 1fr;gap:0;align-items:stretch}
+  .ord{background:var(--card);border:1px solid var(--line2);border-radius:8px;padding:20px 22px}
+  .ord h3{font-size:1.05rem;font-family:var(--mono);font-weight:700;margin-bottom:4px}
+  .ord.dev h3{color:var(--teal)} .ord.player h3{color:var(--verm)}
+  .ord .sub{font-size:.82rem;color:var(--muted);margin-bottom:14px}
+  .ent{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:11px 13px;border:1px solid var(--line);
+    border-radius:7px;margin-bottom:9px;background:var(--card2);transition:.35s;position:relative}
+  .ent .what{font-size:.92rem} .ent .what small{display:block;font-family:var(--mono);font-size:.7rem;color:var(--faint);margin-top:2px}
+  .ent .lock{font-family:var(--mono);font-size:.7rem;font-weight:700;padding:3px 8px;border-radius:4px}
+  .midcol{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--faint)}
+  .midcol .ar{font-size:1.6rem;color:var(--ink)}
+  .midcol .lab{font-family:var(--mono);font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;writing-mode:vertical-rl;text-align:center}
+  .otoggle{display:inline-flex;background:var(--card2);border:1px solid var(--line2);border-radius:30px;padding:3px;margin-bottom:18px}
+  .otoggle button{font-family:var(--mono);font-size:.74rem;border:0;background:transparent;color:var(--muted);padding:8px 16px;border-radius:24px;cursor:pointer;transition:.22s}
+  .otoggle button.on{background:var(--ink);color:var(--paper);font-weight:700}
+  /* player view locks dev-side, unlocks config/save on player-side */
+  .orders.player .ord.dev .ent{opacity:.4}
+  .orders.player .ord.dev .ent .lock{background:rgba(210,64,42,.12);color:var(--verm)}
+  .orders.player .ord.player .ent.edit .lock{background:rgba(78,107,51,.14);color:var(--moss)}
+  .orders.player .ord.player .ent.noedit .lock{background:rgba(20,24,26,.07);color:var(--faint)}
+  .orders.dev .ent .lock{background:rgba(78,107,51,.14);color:var(--moss)}
+
+  /* ---------- dll rule ---------- */
+  .dll{display:grid;grid-template-columns:1.1fr .9fr;gap:30px;align-items:center}
+  .dll .diag{background:var(--card);border:1px solid var(--line2);border-radius:8px;padding:24px;font-family:var(--mono);font-size:.82rem}
+  .dll .row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px dashed var(--line)}
+  .dll .row:last-child{border-bottom:0}
+  .dll .exe{color:var(--verm);font-weight:700}
+  .dll .arrow{color:var(--faint)}
+  .dll .found{color:var(--moss)} .dll .miss{color:var(--verm)}
+  .dll .txt p{color:var(--muted);margin-bottom:12px} .dll .txt p b{color:var(--ink)}
+  .dll .txt .ok{border:1px solid rgba(78,107,51,.4);background:rgba(78,107,51,.08);color:#3c5426;border-radius:8px;padding:12px 14px;font-size:.9rem}
+  .dll .txt .ok b{color:#2c3f1b}
+
+  /* ---------- IO viz ---------- */
+  .io{display:grid;grid-template-columns:1fr 320px;gap:28px;align-items:center}
+  .iocv{background:var(--card);border:1px solid var(--line2);border-radius:8px;padding:18px}
+  .iocv canvas{display:block;width:100%;height:200px;border-radius:6px;background:#F0F2EF;border:1px solid var(--line)}
+  .iocv .cap{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.7rem;color:var(--muted);margin:10px 2px 0}
+  .iocv .cap .v{color:var(--ink);font-weight:700}
+  .ioctl{margin-top:16px}
+  .ioctl .row{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.72rem;color:var(--muted);margin-bottom:7px}
+  input[type=range]{width:100%;-webkit-appearance:none;height:5px;border-radius:4px;background:var(--paper2);outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:3px;background:var(--verm);cursor:pointer;border:3px solid var(--card)}
+  input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:3px;background:var(--verm);cursor:pointer;border:3px solid var(--card)}
+  .io .side p{color:var(--muted);margin-bottom:12px} .io .side p b{color:var(--ink)}
+  .io .side .stat{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.8rem;padding:9px 13px;border:1px solid var(--line);border-radius:7px;background:var(--card);margin-bottom:8px}
+  .io .side .stat b{font-family:var(--disp);font-size:1.2rem}
+  .io .side .stat.slow b{color:var(--verm)} .io .side .stat.fast b{color:var(--moss)}
+
+  /* ---------- disk map ---------- */
+  .disk{display:grid;grid-template-columns:240px 1fr;gap:26px;align-items:start}
+  .disk .types{display:flex;flex-direction:column;gap:9px}
+  .disk .tbtn{text-align:left;background:var(--card);border:1px solid var(--line2);border-radius:8px;padding:13px 15px;cursor:pointer;
+    font-family:var(--body);color:var(--muted);transition:.25s;position:relative}
+  .disk .tbtn:hover{transform:translateX(4px);border-color:var(--line2)}
+  .disk .tbtn .t{font-family:var(--mono);font-weight:700;font-size:.92rem;color:var(--ink)}
+  .disk .tbtn .s{font-size:.78rem;margin-top:3px}
+  .disk .tbtn.on{border-color:var(--verm);background:var(--card2)}
+  .disk .tbtn.on .t{color:var(--verm)}
+  .diskmap{background:var(--card);border:1px solid var(--line2);border-radius:8px;padding:20px}
+  .diskmap svg{display:block;width:100%;height:auto}
+  .zone{fill:var(--card2);stroke:var(--line2);stroke-width:1.5;transition:.4s}
+  .zone.lit{stroke:var(--verm);stroke-width:2.5;fill:rgba(210,64,42,.06)}
+  .zlabel{font-family:var(--mono);font-size:11px;fill:var(--muted)} .zlabel.lit{fill:var(--verm);font-weight:700}
+  .zpath{font-family:var(--mono);font-size:9px;fill:var(--faint)}
+  .flow{fill:none;stroke:var(--verm);stroke-width:2.5;stroke-linecap:round;stroke-dasharray:240;stroke-dashoffset:240;transition:stroke-dashoffset .7s ease}
+  .flow.on{stroke-dashoffset:0}
+  .disknote{margin-top:14px;font-family:var(--mono);font-size:.8rem;color:var(--muted);min-height:2.6em}
+  .disknote b{color:var(--ink)}
+
+  /* ---------- steam layer ---------- */
+  .steam{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  .scard{background:var(--card);border:1px solid var(--line2);border-radius:8px;padding:18px 20px;transition:.25s;position:relative;overflow:hidden}
+  .scard:hover{transform:translateY(-4px);border-color:var(--teal)}
+  .scard .ic{font-family:var(--disp);font-weight:700;font-size:1.3rem;color:var(--teal)}
+  .scard h3{font-family:var(--mono);font-size:.98rem;font-weight:700;margin:8px 0 6px}
+  .scard p{color:var(--muted);font-size:.9rem}
+  .scard .pth{font-family:var(--mono);font-size:.7rem;color:var(--faint);margin-top:10px;border-top:1px solid var(--line);padding-top:9px}
+
+  /* ---------- honest note ---------- */
+  .honest{display:grid;grid-template-columns:1fr 1fr;gap:30px;align-items:center}
+  .honest .q{font-family:var(--disp);font-weight:500;font-size:1.5rem;line-height:1.28;border-left:4px solid var(--verm);padding-left:22px}
+  .honest .q b{color:var(--verm)}
+  .honest .txt p{color:var(--muted);margin-bottom:12px} .honest .txt p b{color:var(--ink)}
+
+  /* ---------- close ---------- */
+  .close{display:grid;grid-template-columns:.8fr 1.2fr;gap:40px;align-items:center;padding:30px 0}
+  .close .big{font-family:var(--disp);font-weight:600;font-size:clamp(2rem,4.4vw,3.4rem);line-height:1.02}
+  .close .big .v{color:var(--teal)}
+  .close .txt p{color:var(--muted);margin-bottom:12px}
+
+  footer{padding:60px 0 84px;border-top:1px solid var(--line);color:var(--faint);font-family:var(--mono);font-size:.76rem;
+    display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px}
+  footer b{color:var(--muted)}
+
+  @media(max-width:900px){
+    .wrap{padding:0 20px}
+    .open{grid-template-columns:1fr;gap:30px;padding:60px 0 36px}
+    .open .left{position:static}
+    .sec-head{grid-template-columns:1fr;gap:8px}
+    .explorer,.orders,.dll,.io,.disk,.honest,.close,.steam{grid-template-columns:1fr}
+    .orders .midcol{flex-direction:row;writing-mode:horizontal-tb;padding:8px 0}
+    .midcol .lab{writing-mode:horizontal-tb}
+    .xray{position:static}
+  }
+</style>
+</head>
+<body>
+<canvas id="net"></canvas>
+<canvas id="scan"></canvas>
+
+<div class="wrap">
+
+  <!-- ============ OPEN ============ -->
+  <header class="open">
+    <div class="left rv">
+      <span class="stamp">forensic · билд, а не исходники</span>
+      <div class="eyebrow" style="margin-top:18px">вскрытая папка</div>
+      <h1>Ты открыл<br>папку игры.<br>Это <span class="strike">не бардак</span>.<br>Это <span class="v">рантайм</span>.</h1>
+      <p class="lead">То, что лежит в <span class="pill">steamapps/common/</span>, разработчик у себя так не держит. Это артефакт сборки, вывернутый наизнанку под одну цель — запуститься и найти каждый файл по пути. У раскладки билда свои законы, и они не совпадают с законами исходников.</p>
+    </div>
+    <div class="sheet rv" aria-hidden="true">
+      <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span> steamapps/common/NeonDrift/ — листинг</div>
+      <div class="body" id="sheetBody"></div>
+    </div>
+  </header>
+
+  <!-- ============ X-RAY ============ -->
+  <section>
+    <div class="sec-head rv">
+      <span class="ghost">01</span>
+      <div><h2>Рентген каждого файла</h2>
+      <p>Кликай по строкам. Справа — что это, к какому слою относится и, главное, <b>почему лежит именно здесь</b>. Цветные теги — это слои; легенда сверху подсветит активный.</p></div>
+    </div>
+    <div class="rv">
+      <div class="legend" id="legend">
+        <div class="lg" data-layer="runtime"><span class="sw" style="background:var(--verm)"></span>runtime · исполняется</div>
+        <div class="lg" data-layer="deps"><span class="sw" style="background:var(--teal)"></span>deps · чужие библиотеки</div>
+        <div class="lg" data-layer="assets"><span class="sw" style="background:var(--ochre)"></span>assets · контент</div>
+        <div class="lg" data-layer="data"><span class="sw" style="background:var(--inkblue)"></span>data · настройки</div>
+        <div class="lg" data-layer="userdata"><span class="sw" style="background:var(--moss)"></span>userdata · твоё</div>
+      </div>
+      <div class="explorer">
+        <div class="tree" id="tree"></div>
+        <aside class="xray" id="xray">
+          <div class="k">выбери файл или папку</div>
+          <h3>NeonDrift/</h3>
+          <div class="role">корень установленной игры</div>
+          <p>Это собирательный разрез типичной установленной игры — имена правдоподобные, но роль каждого элемента важнее имени. Обращай внимание не на то, <i>как называется</i>, а на то, <i>зачем лежит именно тут</i>.</p>
+          <p>Главный инсайт: папка собрана по законам <b>запуска</b>, а не по законам <b>разработки</b>. Поэтому рядом с кодом валяются чужие dll, контент спрессован в архивы, а твои сейвы вообще живут в другом месте диска.</p>
+          <span class="pill">клик = рентген</span>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TWO ORDERS ============ -->
+  <section>
+    <div class="sec-head rv">
+      <span class="ghost">02</span>
+      <div><h2>Два порядка одной и той же игры</h2>
+      <p>Одна и та же сущность у разработчика и у тебя в Steam — это физически разные файлы. Переключи линзу и посмотри, что тебе доступно для правки, а что — нет.</p></div>
+    </div>
+    <div class="rv">
+      <div class="otoggle" id="otoggle">
+        <button data-o="dev" class="on">взгляд разработчика</button>
+        <button data-o="player">взгляд игрока</button>
+      </div>
+      <div class="orders dev" id="orders">
+        <div class="ord dev">
+          <h3>исходники</h3>
+          <div class="sub">порядок разработки · правится людьми</div>
+          <div class="ent"><div class="what">логика ИИ врага<small>src/enemy/ai.js — читается</small></div><span class="lock">правимо</span></div>
+          <div class="ent"><div class="what">урон ракеты = 95<small>data/weapons.json — таблица</small></div><span class="lock">правимо</span></div>
+          <div class="ent"><div class="what">модель дрона<small>assets/models/drone.fbx — исходник</small></div><span class="lock">правимо</span></div>
+          <div class="ent"><div class="what">звук выстрела<small>assets/audio/shot.wav — исходник</small></div><span class="lock">правимо</span></div>
+        </div>
+        <div class="midcol"><span class="ar">→</span><span class="lab">билд-пайплайн</span><span class="ar">→</span></div>
+        <div class="ord player">
+          <h3>билд у тебя</h3>
+          <div class="sub">порядок рантайма · правится почти ничто</div>
+          <div class="ent noedit"><div class="what">логика ИИ врага<small>внутри GameCore.dll — бинарник</small></div><span class="lock">—</span></div>
+          <div class="ent noedit"><div class="what">урон ракеты = 95<small>внутри game.pak / globalgamemanagers</small></div><span class="lock">—</span></div>
+          <div class="ent noedit"><div class="what">модель дрона<small>сжата и упакована в game.pak</small></div><span class="lock">—</span></div>
+          <div class="ent edit"><div class="what">громкость / бинды / язык<small>Config/settings.cfg — читаемый</small></div><span class="lock">—</span></div>
+        </div>
+      </div>
+      <p class="lead" style="margin-top:20px;font-size:1rem">Билд-пайплайн берёт читаемые исходники и <b>перемалывает</b> их: код компилируется в бинарник, баланс и ассеты упаковываются в архивы движка, а наружу торчат только исполняемый файл, зависимости и то, что оставили читаемым намеренно — конфиги. Поэтому «у меня в папке всё не так, как в туториале по исходникам» — это не ошибка, это и есть норма.</p>
+    </div>
+  </section>
+
+  <!-- ============ DLL RULE ============ -->
+  <section>
+    <div class="sec-head rv">
+      <span class="ghost">03</span>
+      <div><h2>Почему dll свалены в корень</h2>
+      <p>Это не лень упаковщика. Это правило операционной системы про то, как запускаемая программа ищет чужой код, от которого зависит.</p></div>
+    </div>
+    <div class="dll rv">
+      <div class="diag">
+        <div class="row"><span class="exe">NeonDrift.exe</span><span class="arrow">ищет →</span><span class="found">steam_api64.dll ✓ рядом</span></div>
+        <div class="row"><span class="exe">NeonDrift.exe</span><span class="arrow">ищет →</span><span class="found">GameCore.dll ✓ рядом</span></div>
+        <div class="row"><span class="exe">NeonDrift.exe</span><span class="arrow">ищет →</span><span class="found">d3d12.dll ✓ рядом / в системе</span></div>
+        <div class="row"><span class="exe">NeonDrift.exe</span><span class="arrow">ищет →</span><span class="miss">foo.dll ✗ не найдена = краш</span></div>
+      </div>
+      <div class="txt">
+        <p>Когда exe стартует, загрузчик ОС должен подтянуть все библиотеки, от которых тот зависит. Он ищет их по списку мест, и <b>первое место в списке — папка, где лежит сам exe</b>. Поэтому зависимости кладут рядом: так их точно найдут, на любой машине, без настройки путей.</p>
+        <p>Если dll убрать в подпапку «для красоты» — загрузчик её не посмотрит, и игра не запустится. Куча файлов в корне — это не бардак, это <b>требование динамической линковки</b>.</p>
+        <div class="ok"><b>Правило:</b> исполняемый файл и всё, что он грузит при старте, обязаны лежать в одной папке. Красоту наводят не тут, а в подпапках с контентом.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ IO VIZ ============ -->
+  <section>
+    <div class="sec-head rv">
+      <span class="ghost">04</span>
+      <div><h2>Один большой пак против тысячи файлов</h2>
+      <p>Почему контент часто спрессован в один-два архива (<span class="pill">game.pak</span>, <span class="pill">.assets</span>), а не лежит тысячей картинок и моделей? Двигай ползунок и смотри на диск.</p></div>
+    </div>
+    <div class="io rv">
+      <div class="iocv">
+        <canvas id="iocv"></canvas>
+        <div class="cap"><span>верх: 10 000 мелких файлов · много прыжков головки</span><span class="v" id="ioSeek">—</span></div>
+        <div class="cap"><span>низ: один пак · чтение подряд</span><span class="v" id="ioSeq">—</span></div>
+        <div class="ioctl">
+          <div class="row"><span>тысяча файлов ←→ один архив</span><span id="ioLbl">поровну</span></div>
+          <input type="range" id="ioRange" min="0" max="100" value="50">
+        </div>
+      </div>
+      <div class="side">
+        <p>Диск читает данные блоками, но между блоками в разных местах ему надо <b>переместить головку</b> (seek). Десять тысяч мелких файлов вперемешку = десять тысяч прыжков, и на каждом прыжке диск молчит. Один большой файл, лежащий подряд, = почти никаких прыжков.</p>
+        <div class="stat slow"><span>мелкими файлами</span><b id="tSlow">~14 с</b></div>
+        <div class="stat fast"><span>одним паком</span><b id="tFast">~1.6 с</b></div>
+        <p style="font-size:.88rem">Поэтому движки пакуют контент: быстрее грузится, меньше записей в файловой таблице, проще целиком шифровать и проверять целостность. Цена — чтобы достать один звук, нужен инструмент распаковки; но для запуска это не важно.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DISK MAP ============ -->
+  <section>
+    <div class="sec-head rv">
+      <span class="ghost">05</span>
+      <div><h2>Куда на самом деле деваются сейвы</h2>
+      <p>Спойлер: часто вообще не в папку игры. Кликай по типу данных — увидишь, в какую зону диска оно пишется и почему.</p></div>
+    </div>
+    <div class="disk rv">
+      <div class="types" id="types">
+        <button class="tbtn on" data-t="save"><div class="t">сохранения</div><div class="s">прогресс, привязан к тебе</div></button>
+        <button class="tbtn" data-t="log"><div class="t">логи и краш-дампы</div><div class="s">пишутся каждый запуск</div></button>
+        <button class="tbtn" data-t="ucfg"><div class="t">твои настройки</div><div class="s">громкость, бинды, окно</div></button>
+        <button class="tbtn" data-t="cache"><div class="t">кэш шейдеров</div><div class="s">пересоздаётся под твоё железо</div></button>
+      </div>
+      <div>
+        <div class="diskmap">
+          <svg viewBox="0 0 560 300" preserveAspectRatio="xMidYMid meet">
+            <!-- zones -->
+            <rect class="zone" data-z="game" x="20" y="20" width="240" height="120" rx="8"/>
+            <text class="zlabel" data-z="game" x="34" y="44">папка игры</text>
+            <text class="zpath" x="34" y="60">…/common/NeonDrift/</text>
+            <text class="zpath" x="34" y="76">часто read-only</text>
+            <text class="zpath" x="34" y="92">общая для всех пользователей</text>
+
+            <rect class="zone" data-z="user" x="300" y="20" width="240" height="120" rx="8"/>
+            <text class="zlabel" data-z="user" x="314" y="44">папки пользователя</text>
+            <text class="zpath" x="314" y="60">%APPDATA% / Documents</text>
+            <text class="zpath" x="314" y="76">~/.config на Linux</text>
+            <text class="zpath" x="314" y="92">пишется свободно, per-user</text>
+
+            <rect class="zone" data-z="cloud" x="20" y="170" width="520" height="110" rx="8"/>
+            <text class="zlabel" data-z="cloud" x="34" y="194">облако Steam / сервер</text>
+            <text class="zpath" x="34" y="210">steamapps/…/userdata/&lt;steamid&gt;/</text>
+            <text class="zpath" x="34" y="226">синхронизация между ПК</text>
+            <text class="zpath" x="34" y="242">копия сейвов вне твоего диска</text>
+
+            <!-- flows (drawn from a left anchor to a zone) -->
+            <path class="flow" data-t="save"  d="M0,0 C0,0 0,0 0,0"/>
+            <path class="flow" data-t="log"   d="M0,0 C0,0 0,0 0,0"/>
+            <path class="flow" data-t="ucfg"  d="M0,0 C0,0 0,0 0,0"/>
+            <path class="flow" data-t="cache" d="M0,0 C0,0 0,0 0,0"/>
+          </svg>
+        </div>
+        <div class="disknote" id="disknote"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STEAM LAYER ============ -->
+  <section>
+    <div class="sec-head rv">
+      <span class="ghost">06</span>
+      <div><h2>Steam — ещё один слой поверх</h2>
+      <p>Папка игры — не вся картина. Steam добавляет свои файлы и правила вокруг неё, и они тоже лежат «раскиданно», но по своей логике.</p></div>
+    </div>
+    <div class="steam rv">
+      <div class="scard"><div class="ic">≡</div><h3>appmanifest_*.acf</h3><p>Манифест установки: какая версия, какие депоты скачаны, куда ставить. Лежит в <span class="mono">steamapps/</span>, не в папке игры — потому что описывает установку, а не саму игру.</p><div class="pth">steamapps/appmanifest_123456.acf</div></div>
+      <div class="scard"><div class="ic">⤓</div><h3>_CommonRedist / redist</h3><p>Системные рантаймы (VC++, DirectX, .NET). Ставятся <b>в систему один раз</b>, а не копируются в игру — поэтому лежат отдельной папкой-установщиком и после установки не нужны.</p><div class="pth">…/NeonDrift/_CommonRedist/</div></div>
+      <div class="scard"><div class="ic">☁</div><h3>userdata / cloud</h3><p>Туда Steam складывает то, что синхронизирует между компьютерами — обычно сейвы. Пути облака прописаны разработчиком в манифесте депота.</p><div class="pth">steamapps/…/userdata/&lt;id&gt;/</div></div>
+      <div class="scard"><div class="ic">⛨</div><h3>античит (EAC / BattlEye)</h3><p>Свои файлы рядом с exe, потому что грузятся очень рано и требуют особых прав. Часто ставят службу в систему — поэтому их следы есть и вне папки игры.</p><div class="pth">…/NeonDrift/EasyAntiCheat/</div></div>
+    </div>
+  </section>
+
+  <!-- ============ HONEST ============ -->
+  <section>
+    <div class="sec-head rv">
+      <span class="ghost">07</span>
+      <div><h2>Честное слово про «запаковано = защищено»</h2>
+      <p>Раз уж ты копаешься в чужих файлах — вот та же правда про защиту, но применительно к тому, что ты видишь в папке.</p></div>
+    </div>
+    <div class="honest rv">
+      <div class="q">То, что контент лежит в <b>одном зашифрованном паке</b>, а не россыпью png-шек, — это <b>не защита</b>. Это упаковка ради скорости и целостности.</div>
+      <div class="txt">
+        <p>Пак действительно мешает «просто взять и скопировать текстуру» — но ровно до первого инструмента распаковки, которых под каждый движок написаны десятки. Шифрование ассетов — тот же замок на картонной двери: замедляет любопытного, не останавливает целеустремлённого.</p>
+        <p>И это нормально. Многие разработчики <b>намеренно</b> оставляют контент читаемым или дают инструменты распаковки — чтобы сообщество могло моддить, а моды продлевают игре жизнь. Борьба «закрыть ассеты наглухо» в одиночной игре — это трата сил на битву, которая всё равно проиграна, вместо того чтобы делать игру лучше.</p>
+        <p><b>Реально защищено только то, чего в этой папке нет:</b> серверная проверка в онлайн-игре, приватные ключи, экономика на сервере. А то, что ты держишь в руках и запускаешь на своём процессоре, — по определению читается.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CLOSE ============ -->
+  <section style="border-top:1px solid var(--line)">
+    <div class="close rv">
+      <div class="big">Два порядка.<br>Один — чтобы <span class="v">писать</span>.<br>Другой — чтобы <span class="v">бежать</span>.</div>
+      <div class="txt">
+        <p>Структура исходников у разработчика оптимизирована под то, чтобы людям было удобно менять игру: модули по смыслу, баланс в таблицах, ассеты исходниками, всё в версиях. Структура билда у тебя в Steam оптимизирована под то, чтобы машине было удобно игру запускать: exe и dll рядом по правилу ОС, контент в паках ради скорости диска, конфиги наружу ради правки, сейвы — в пользовательские папки и облако.</p>
+        <p>Поэтому «раскидано» — это не отсутствие порядка. Это порядок, который ты научился читать не с той стороны. И как только видишь обе раскладки одновременно — исчезает ощущение хаоса и появляется ощущение инженерии: каждая странность на месте по причине, а не по недосмотру.</p>
+        <p>Это, кстати, и есть та самая зрелость, о которой мы говорили: уметь держать в голове оба порядка и понимать, как билд-пайплайн превращает один в другой. Тогда чужая папка перестаёт быть кучей файлов и становится читаемой картой чужих решений.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span><b>ВСКРЫТАЯ ПАПКА</b> · почему в установленной игре всё «раскидано»</span>
+    <span>билд ≠ исходники · порядок рантайма ≠ порядок разработки</span>
+  </footer>
+
+</div>
+
+<script>
+/* ---------- ambient : faint circuit nodes on light paper ---------- */
+(function(){
+  const c=document.getElementById('net'),x=c.getContext('2d');
+  let w,h,pts;
+  function size(){w=c.width=innerWidth;h=c.height=innerHeight;
+    const n=Math.min(46,Math.round(w*h/34000));
+    pts=Array.from({length:n},()=>({x:Math.random()*w,y:Math.random()*h,vx:(Math.random()-.5)*.14,vy:(Math.random()-.5)*.14}));}
+  size();addEventListener('resize',size);
+  function frame(){
+    x.clearRect(0,0,w,h);
+    for(const p of pts){p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>w)p.vx*=-1;if(p.y<0||p.y>h)p.vy*=-1;}
+    for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){
+      const a=pts[i],b=pts[j],d=Math.hypot(a.x-b.x,a.y-b.y);
+      if(d<140){x.strokeStyle='rgba(23,96,95,'+(0.07*(1-d/140))+')';x.lineWidth=1;
+        x.beginPath();x.moveTo(a.x,a.y);x.lineTo(b.x,b.y);x.stroke();}}
+    for(const p of pts){x.fillStyle='rgba(20,24,26,.10)';x.beginPath();x.arc(p.x,p.y,1.3,0,7);x.fill();}
+    requestAnimationFrame(frame);
+  }
+  frame();
+})();
+/* ---------- ambient : scanning line on a light table ---------- */
+(function(){
+  const c=document.getElementById('scan'),x=c.getContext('2d');
+  let w,h,y=0;
+  function size(){w=c.width=innerWidth;h=c.height=innerHeight;}
+  size();addEventListener('resize',size);
+  function frame(){
+    x.clearRect(0,0,w,h);y=(y+0.5)%h;
+    const g=x.createLinearGradient(0,y-60,0,y+60);
+    g.addColorStop(0,'rgba(23,96,95,0)');g.addColorStop(.5,'rgba(23,96,95,.06)');g.addColorStop(1,'rgba(23,96,95,0)');
+    x.fillStyle=g;x.fillRect(0,y-60,w,120);
+    x.strokeStyle='rgba(23,96,95,.14)';x.lineWidth=1;x.beginPath();x.moveTo(0,y);x.lineTo(w,y);x.stroke();
+    requestAnimationFrame(frame);
+  }
+  frame();
+})();
+
+/* ---------- opening sheet typing ---------- */
+(function(){
+  const lines=[
+    '<span class="c">$ ls -F</span>',
+    '<span class="x">NeonDrift.exe</span>        <span class="c"># точка запуска</span>',
+    '<span class="d">steam_api64.dll</span>      <span class="c"># мост к Steam</span>',
+    '<span class="d">GameCore.dll</span>         <span class="c"># твой код, но в бинарнике</span>',
+    '<span class="d">Engine.dll</span>           <span class="c"># движок</span>',
+    '<span class="d">EasyAntiCheat/</span>       <span class="c"># античит</span>',
+    '<span class="d">Data/</span>                <span class="c"># упакованный контент</span>',
+    '<span class="d">Movies/</span>              <span class="c"># ролики</span>',
+    '<span class="d">Audio/</span>               <span class="c"># звуковые банки</span>',
+    '<span class="d">Config/</span>              <span class="c"># то, что можно править</span>',
+    '<span class="d">_CommonRedist/</span>       <span class="c"># ставится в систему</span>',
+    '<span class="c">$ </span><span class="caret"></span>'
+  ];
+  const b=document.getElementById('sheetBody');let i=0;
+  (function n(){if(i>=lines.length)return;const d=document.createElement('div');d.className='ln';d.innerHTML=lines[i];
+    b.appendChild(d);i++;setTimeout(n,i<3?240:135);})();
+})();
+
+/* ---------- X-RAY tree ---------- */
+const TREE={name:'NeonDrift/',type:'dir',layer:'runtime',role:'корень установленной игры',
+  why:'Верхний уровень билда. Здесь собрано всё, что нужно для запуска: исполняемый файл, зависимости, движок, контент и конфиги. Раскладка подчинена не «красоте», а тому, как ОС и движок ищут файлы.',
+  children:[
+    {name:'NeonDrift.exe',type:'file',layer:'runtime',role:'исполняемый файл · точка входа',
+      why:'То, на что ты кликаешь (или что запускает Steam). Загрузчик ОС стартует именно его и начинает подтягивать зависимости — поэтому все dll, от которых он зависит, обязаны лежать рядом.'},
+    {name:'steam_api64.dll',type:'file',layer:'deps',role:'мост к Steam',
+      why:'Библиотека, через которую игра общается со Steam: ачивки, оверлей, проверка лицензии, облачные сейвы. Лежит рядом с exe по правилу динамической линковки — иначе не найдётся при старте.',
+      alt:'На Linux это libsteam_api.so, на macOS .dylib — та же роль, другое расширение под ОС.'},
+    {name:'GameCore.dll',type:'file',layer:'runtime',role:'скомпилированный код игры',
+      why:'Вот он, «код» — но уже не читаемый исходник, а скомпилированный бинарник. Вся логика, ИИ, физика свёрнуты сюда (или в несколько dll). Править это руками нельзя — это и есть граница между исходниками и билдом.',
+      alt:'В Unity это часто GameAssembly.dll (IL2CPP); в Unreal логика обычно внутри самого исполняемого модуля и модулей движка.'},
+    {name:'Engine.dll',type:'file',layer:'runtime',role:'рантайм движка',
+      why:'Код самого движка, отделённый от кода игры. Так движок можно обновлять и переиспользовать между проектами, а игра — подменять свои dll, не трогая движок.'},
+    {name:'d3d12.dll / dxgi.dll',type:'file',layer:'deps',role:'графический рантайм',
+      why:'Иногда кладут рядом свою версию графических библиотек, чтобы не зависеть от того, что стоит в системе. Если не рядом — ОС поищет их в системных папках; не найдёт нигде — краш.'},
+    {name:'EasyAntiCheat/',type:'dir',layer:'runtime',role:'античит',
+      why:'Свой каталог, потому что античит грузится очень рано, до основной игры, и часто ставит службу в систему с повышенными правами. Его файлы трогать нельзя — сломается проверка целостности.',
+      children:[
+        {name:'EasyAntiCheat_EOS.exe',type:'file',layer:'runtime',role:'загрузчик античита',why:'Процесс, который стартует первым и проверяет окружение до того, как пустит игру.'}
+      ]},
+    {name:'Data/',type:'dir',layer:'assets',role:'упакованный контент и сцены',
+      why:'Сердце билда по объёму. Тут лежит то, во что превратились модели, текстуры, уровни и баланс — обычно спрессованное в архивы движка ради скорости чтения и целостности. Россыпи png ты тут не увидишь.',
+      alt:'В Unreal это Content/Paks/*.pak; в Unity — &lt;Игра&gt;_Data с globalgamemanagers и level-файлами; смысл один: упакованный контент.',
+      children:[
+        {name:'game.pak',type:'file',layer:'assets',role:'один большой архив контента',
+          why:'Тысячи ассетов слиты в один файл, чтобы диск читал их подряд без прыжков головки. Внутри — своя таблица содержимого, по которой движок достаёт нужный кусок, не распаковывая всё.'},
+        {name:'levels/',type:'dir',layer:'assets',role:'чанки уровней для стриминга',
+          why:'Большие уровни режут на куски и подгружают по мере перемещения игрока, чтобы не держать весь мир в памяти. Поэтому они лежат отдельными файлами, а не внутри общего пака.'},
+        {name:'StreamingAssets/',type:'dir',layer:'assets',role:'сырые файлы, которые не конвертировали',
+          why:'То, что движок не пересобирает в свой формат — видеоролики, готовые банки, сторонние данные. Лежат как есть, потому что их читают напрямую внешние декодеры.'}
+      ]},
+    {name:'Movies/',type:'dir',layer:'assets',role:'видеоролики',
+      why:'Отдельная папка, потому что видео стримится с диска специальным декодером, а не грузится в память как обычный ассет. Форматы свои (.bik, .usm, .mp4) — под конкретный декодер.',
+      children:[
+        {name:'intro.usm',type:'file',layer:'assets',role:'заставка',why:'Проигрывается потоком при старте; не распаковывается в память целиком — иначе не влезет.'}
+      ]},
+    {name:'Audio/',type:'dir',layer:'assets',role:'звуковые банки',
+      why:'Звук собран в банки (.bank и т.п.): сотни сэмплов в одном файле с метаданными, чтобы аудио-движок мог быстро искать и микшировать. Опять упаковка ради скорости и порядка.',
+      children:[
+        {name:'sfx.bank',type:'file',layer:'assets',role:'банк эффектов',why:'Все выстрелы/шаги/удары в одном контейнере; движок достаёт нужный по идентификатору.'}
+      ]},
+    {name:'Config/',type:'dir',layer:'data',role:'читаемые настройки',
+      why:'Единственное, что намеренно оставили текстовым и правимым: дефолтные и пользовательские настройки, бинды, качество. Лежат отдельно, чтобы ни движок, ни игрок не лезли в запакованный контент ради смены громкости.',
+      alt:'Именно эти файлы — твоё законное поле для правки и моддинга настроек; трогать запакованное — уже обход упаковки.',
+      children:[
+        {name:'settings.cfg',type:'file',layer:'data',role:'настройки игрока',why:'Человекочитаемый текст: разрешение, громкость, чувствительность. Читается при старте, перезаписывается из меню.'}
+      ]},
+    {name:'_CommonRedist/',type:'dir',layer:'deps',role:'системные рантаймы-установщики',
+      why:'VC++, DirectX, .NET — то, что ставится в систему один раз, а не живёт внутри игры. Папка нужна только при первой установке; после неё её можно не трогать. Лежит отдельно, чтобы не смешиваться с файлами самой игры.',
+      children:[
+        {name:'vcredist/ · DirectX/',type:'dir',layer:'deps',role:'установщики компонентов',why:'Ставятся в ОС, а не копируются в игру — поэтому и лежат как отдельный инсталлятор-пакет.'}
+      ]},
+    {name:'logs/',type:'dir',layer:'userdata',role:'логи и краш-дампы',
+      why:'Игра пишет сюда (или в пользовательские папки — см. карту диска) то, что создаётся при запуске: логи, дампы падений. Это не часть дистрибутива, а следы работы; их наличие и содержимое у каждого своё.',
+      alt:'Часто логи и сейвы уносят вообще из папки игры в %APPDATA%/Documents, потому что папка игры может быть read-only и общей для всех пользователей.'}
+  ]};
+
+const treeEl=document.getElementById('tree'),xrayEl=document.getElementById('xray'),legendEl=document.getElementById('legend');
+function build(node,depth){
+  const li=document.createElement('li');li.className=node.type+(depth<1?' open':'');
+  const nd=document.createElement('div');nd.className='node';
+  nd.innerHTML=(node.type==='dir'?'<span class="tw">▸</span>':'<span class="tw"></span>')+
+    '<span class="ic">'+(node.type==='dir'?'▣':'◈')+'</span><span class="nm">'+node.name+'</span>'+
+    '<span class="tg"><span class="L L-'+node.layer+'">'+node.layer+'</span></span>';
+  li.appendChild(nd);
+  nd.addEventListener('click',function(e){e.stopPropagation();
+    document.querySelectorAll('.tree .node.sel').forEach(n=>n.classList.remove('sel'));nd.classList.add('sel');
+    if(node.type==='dir')li.classList.toggle('open');setXray(node);});
+  if(node.children){const ul=document.createElement('ul');node.children.forEach(c=>ul.appendChild(build(c,depth+1)));li.appendChild(ul);}
+  return li;
+}
+function setXray(n){
+  legendEl.querySelectorAll('.lg').forEach(l=>l.classList.toggle('lit',l.dataset.layer===n.layer));
+  xrayEl.innerHTML='<div class="k">'+(n.type==='dir'?'папка':'файл')+' · слой</div>'+
+    '<h3>'+n.name+'</h3>'+
+    '<div class="role"><span class="L L-'+n.layer+'">'+n.layer+'</span> &nbsp;'+n.role+'</div>'+
+    '<p>'+n.why+'</p>'+
+    (n.alt?'<div class="alt"><b>в других движках/ОС:</b> '+n.alt+'</div>':'')+
+    '<span class="pill" style="margin-top:14px;display:inline-block">'+(n.type==='dir'?(n.children?n.children.length+' вложенных':'пусто'):'клик по коду · данные отдельно')+'</span>';
+}
+treeEl.appendChild(build(TREE,0));
+
+/* ---------- two orders toggle ---------- */
+(function(){
+  const tg=document.getElementById('otoggle'),ord=document.getElementById('orders');
+  tg.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+    tg.querySelectorAll('button').forEach(z=>z.classList.remove('on'));b.classList.add('on');
+    ord.className='orders '+b.dataset.o;
+  }));
+})();
+
+/* ---------- IO visualization ---------- */
+(function(){
+  const cv=document.getElementById('iocv'),x=cv.getContext('2d');
+  const rng=document.getElementById('ioRange'),lbl=document.getElementById('ioLbl');
+  const seekEl=document.getElementById('ioSeek'),seqEl=document.getElementById('ioSeq');
+  const tSlow=document.getElementById('tSlow'),tFast=document.getElementById('tFast');
+  let W,H,dpr=Math.min(devicePixelRatio||1,2);
+  function size(){const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*dpr;cv.height=H*dpr;x.setTransform(dpr,0,0,dpr,0,0);}
+  size();addEventListener('resize',size);
+  // two tracks of read-heads
+  const TOP=70,BOT=150;
+  let small=[],big={x:0,dir:1};
+  for(let i=0;i<16;i++)small.push({x:Math.random()*1,tx:Math.random()*1,seek:Math.random()*30,reading:0});
+  function pack(){return rng.value/100;}
+  function refresh(){
+    const p=pack();
+    lbl.textContent=p<.33?'в основном файлы':p<.66?'поровну':'в основном пак';
+    // times: small dominated by seeks, big by sequential size
+    const slow=(2+ (1-p)*16).toFixed(1), fast=(0.6+ p*1.4).toFixed(1);
+    tSlow.textContent='~'+slow+' с'; tFast.textContent='~'+fast+' с';
+  }
+  rng.addEventListener('input',refresh);refresh();
+  let t=0;
+  function frame(){
+    t+=0.016;x.clearRect(0,0,W,H);
+    const p=pack();
+    // track backgrounds
+    x.fillStyle='rgba(20,24,26,.04)';x.fillRect(14,TOP-12,W-28,24);x.fillRect(14,BOT-12,W-28,24);
+    x.font='10px "Spline Sans Mono",monospace';x.fillStyle='rgba(20,24,26,.35)';
+    x.fillText('мелкие файлы',16,TOP-16);x.fillText('один пак',16,BOT-16);
+    // small heads activity scaled by (1-p)
+    const activeSmall=Math.max(1,Math.round((1-p)*small.length));
+    let seekCount=0;
+    for(let i=0;i<small.length;i++){
+      const h=small[i];const on=i<activeSmall;
+      if(on){
+        h.seek-=1;
+        if(h.seek<=0){
+          if(h.reading>0){h.reading-=1;}
+          else{h.tx=Math.random();h.seek=8+Math.random()*22;h.reading=4;seekCount++;}
+        }
+        h.x+=(h.tx-h.x)*0.18;
+      }
+      const px=14+h.x*(W-28);
+      x.globalAlpha=on?1:0.12;
+      x.fillStyle='#D2402A';x.fillRect(px-1,TOP-9,2,18);
+      // read block
+      if(on&&h.reading>0){x.fillStyle='rgba(210,64,42,.25)';x.fillRect(px,TOP-6,10,12);}
+    }
+    x.globalAlpha=1;
+    // big head sequential, activity scaled by p
+    if(p>0.02){
+      big.x+=big.dir*0.004*(0.4+p);if(big.x>1){big.x=1;big.dir=-1;}if(big.x<0){big.x=0;big.dir=1;}
+      const bx=14+big.x*(W-28);
+      x.fillStyle='rgba(78,107,51,.22)';x.fillRect(14,BOT-6,bx-14,12);
+      x.globalAlpha=Math.min(1,p+0.2);x.fillStyle='#4E6B33';x.fillRect(bx-1,BOT-9,2,18);x.globalAlpha=1;
+    }
+    seekEl.textContent=seekCount+' seek/кадр';
+    seqEl.textContent='последовательно';
+    requestAnimationFrame(frame);
+  }
+  frame();
+})();
+
+/* ---------- disk map ---------- */
+(function(){
+  const btns=document.querySelectorAll('#types .tbtn');
+  const note=document.getElementById('disknote');
+  const zones=document.querySelectorAll('.zone'),zlabels=document.querySelectorAll('.zlabel');
+  const flows=document.querySelectorAll('.flow');
+  // target zone + entry point per type, and a path from a left anchor
+  const MAP={
+    save :{z:'user', note:'<b>Сейвы</b> почти всегда в пользовательских папках (%APPDATA%, Documents, ~/.config), а не в папке игры: папка игры может быть read-only и общей для всех пользователей, а прогресс — твой личный. Плюс оттуда Steam забирает их в облако.'},
+    log  :{z:'user', note:'<b>Логи и краш-дампы</b> пишутся при каждом запуске, поэтому им нужно место с правом записи — снова пользовательские папки. В папке игры их держат реже и обычно только как дубликат.'},
+    ucfg :{z:'game', note:'<b>Твои настройки</b> (окно, громкость, бинды) часто лежат в Config/ рядом с игрой или в её подпапке в userdata — это читаемый текст, который игра перезаписывает из меню. Править руками можно.'},
+    cache:{z:'user', note:'<b>Кэш шейдеров</b> пересобирается под твоё конкретное железо и видеокарту, поэтому он per-user и per-device — в пользовательских папках. Тащить его между компьютерами бессмысленно.'}
+  };
+  // zone anchor points (right edge centers) for drawing flow from left margin
+  const ZPT={game:{x:140,y:80},user:{x:420,y:80},cloud:{x:280,y:225}};
+  function pathFor(z){
+    const a=ZPT[z]; // simple curved arrow from a fixed left source to the zone
+    const sx=8, sy=150;
+    return 'M'+sx+','+sy+' C'+(sx+40)+','+sy+' '+(a.x-60)+','+a.y+' '+a.x+','+a.y;
+  }
+  flows.forEach(f=>f.setAttribute('d',pathFor(MAP[ Object.keys(MAP).find(k=>MAP[k].z=== (f.dataset.t?MAP[f.dataset.t].z:'game') )].z )));
+  // simpler: set each flow path by its own type
+  flows.forEach(f=>{const z=MAP[f.dataset.t].z;f.setAttribute('d',pathFor(z));});
+  function select(t){
+    btns.forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+    const z=MAP[t].z;
+    zones.forEach(r=>r.classList.toggle('lit',r.dataset.z===z));
+    zlabels.forEach(l=>l.classList.toggle('lit',l.dataset.z===z));
+    flows.forEach(f=>f.classList.toggle('on',f.dataset.t===t));
+    note.innerHTML=MAP[t].note;
+  }
+  btns.forEach(b=>b.addEventListener('click',()=>select(b.dataset.t)));
+  select('save');
+})();
+
+/* ---------- scroll reveal ---------- */
+(function(){
+  const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.14});
+  document.querySelectorAll('.rv').forEach(el=>io.observe(el));
+})();
+</script>
+</body>
+</html>
